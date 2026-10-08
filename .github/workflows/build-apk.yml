@@ -5,10 +5,7 @@ on:
   workflow_dispatch:
 jobs:
   build:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./masterplan-apk-project
+    runs-on: ubuntu-lates
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
