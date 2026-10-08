@@ -1,0 +1,31 @@
+name: Build APK
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 17 }
+      - run: npm install
+      - run: npx cap add android
+      - name: Quyền thông báo + báo thức chính xác
+        run: |
+          M=android/app/src/main/AndroidManifest.xml
+          sed -i 's#<application#<uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>\n    <uses-permission android:name="android.permission.USE_EXACT_ALARM"/>\n    <application#' $M
+      - name: Tạo icon app
+        continue-on-error: true
+        run: npx capacitor-assets generate --android --iconBackgroundColor '#4f46e5' --iconBackgroundColorDark '#4f46e5'
+      - run: npx cap sync android
+      - name: Build APK
+        working-directory: android
+        run: chmod +x gradlew && ./gradlew assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MasterPlan-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
