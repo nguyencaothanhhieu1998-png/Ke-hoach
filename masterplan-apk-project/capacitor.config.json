@@ -1,0 +1,6 @@
+{
+  "appId": "com.masterplan.fiveyear",
+  "appName": "MasterPlan 5Y",
+  "webDir": "www",
+  "server": { "androidScheme": "https" }
+}

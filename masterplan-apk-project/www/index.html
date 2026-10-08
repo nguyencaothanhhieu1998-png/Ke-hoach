@@ -1,0 +1,1437 @@
+<!DOCTYPE html>
+<html lang="vi" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#4f46e5">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="MasterPlan">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <script src="reminder-core.js"></script>
+    <title>Kế Hoạch Chiến Lược 5 Năm - 5-Year Master Planner</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        indigo: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            800: '#3730a3',
+                            900: '#312e81'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Font: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome 6 Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js CDN for Analytics Visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.05);
+        }
+        .dark ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(100, 116, 139, 0.4);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(100, 116, 139, 0.6);
+        }
+        .day-box {
+            transition: all 0.15s ease-in-out;
+        }
+        @media (hover: hover) {
+            .day-box:hover { transform: scale(1.15); z-index: 10; }
+        }
+        /* --- Mobile / PWA --- */
+        html { -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; }
+        body { padding-bottom: env(safe-area-inset-bottom); overscroll-behavior-y: none; }
+        header { padding-top: env(safe-area-inset-top); }
+        button { touch-action: manipulation; }
+        #viewModeTabs { overflow-x: auto; max-width: 100%; scrollbar-width: none; }
+        #viewModeTabs::-webkit-scrollbar { display: none; }
+        #viewModeTabs button { white-space: nowrap; flex-shrink: 0; }
+        @media (max-width: 640px) {
+            input, select, textarea { font-size: 16px !important; } /* tránh iOS tự zoom khi nhập */
+            #toastNotification { left: 1rem; right: 1rem; bottom: calc(1rem + env(safe-area-inset-bottom)); justify-content: center; }
+        }
+        @media (display-mode: standalone) { footer { padding-bottom: calc(1.25rem + env(safe-area-inset-bottom)); } }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col transition-colors duration-200">
+
+    <header class="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md sticky top-0 z-40 border-b border-slate-200 dark:border-slate-700 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/20">
+                    <i class="fa-solid fa-mountain text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold tracking-tight leading-tight">MasterPlan 5Y</h1>
+                    <p class="hidden sm:block text-xs text-slate-500 dark:text-slate-400">Chiến lược 5 năm & Theo dõi từng ngày</p>
+                </div>
+            </div>
+
+            <!-- Action buttons -->
+            <div class="flex items-center space-x-2 sm:space-x-3">
+                <!-- Export / Import buttons -->
+                <button onclick="exportData()" class="p-2 sm:px-3 sm:py-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-xs font-medium text-slate-600 dark:text-slate-300 flex items-center space-x-1.5 transition-all" title="Sao lưu dữ liệu ra file JSON">
+                    <i class="fa-solid fa-download"></i>
+                    <span class="hidden md:inline">Sao lưu</span>
+                </button>
+                <button onclick="document.getElementById('importFileInput').click()" class="p-2 sm:px-3 sm:py-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-xs font-medium text-slate-600 dark:text-slate-300 flex items-center space-x-1.5 transition-all" title="Nhập dữ liệu từ file JSON">
+                    <i class="fa-solid fa-upload"></i>
+                    <span class="hidden md:inline">Phục hồi</span>
+                </button>
+                <input type="file" id="importFileInput" class="hidden" accept=".json" onchange="importData(event)">
+
+                <!-- Install + Reminder -->
+                <button id="installBtn" onclick="installApp()" class="hidden p-2 sm:px-3 sm:py-2 rounded-xl border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 text-xs font-semibold items-center space-x-1.5 transition-all" title="Cài ứng dụng lên màn hình chính">
+                    <i class="fa-solid fa-mobile-screen-button"></i><span class="hidden sm:inline">Cài app</span>
+                </button>
+                <button onclick="openReminderModal()" id="bellBtn" class="relative p-2.5 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-all" title="Cài đặt nhắc nhở">
+                    <i class="fa-solid fa-bell"></i>
+                    <span id="bellDot" class="hidden absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-500"></span>
+                </button>
+
+                <!-- Theme Toggle -->
+                <button id="themeToggleBtn" class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-all focus:outline-none" title="Chuyển chế độ Sáng / Tối">
+                    <i class="fa-solid fa-moon dark:hidden"></i>
+                    <i class="fa-solid fa-sun hidden dark:inline text-amber-400"></i>
+                </button>
+
+                <!-- Add Plan Button -->
+                <button onclick="openPlanModal()" class="bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold shadow-md shadow-indigo-500/25 flex items-center space-x-2 transition-all">
+                    <i class="fa-solid fa-plus"></i>
+                    <span class="hidden sm:inline">Tạo Kế Hoạch Mới</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full space-y-6">
+
+        <!-- Top Statistical Cards -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-xs flex items-center space-x-3.5">
+                <div class="w-11 h-11 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                    <i class="fa-solid fa-cubes text-xl"></i>
+                </div>
+                <div>
+                    <span class="text-[11px] font-semibold tracking-wider uppercase text-slate-400">Tổng Kế Hoạch</span>
+                    <h3 id="statTotalPlans" class="text-xl font-bold">0</h3>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-xs flex items-center space-x-3.5">
+                <div class="w-11 h-11 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                    <i class="fa-solid fa-calendar-check text-xl"></i>
+                </div>
+                <div>
+                    <span class="text-[11px] font-semibold tracking-wider uppercase text-slate-400">Hôm Nay Check-in</span>
+                    <h3 id="statTodayCheckRatio" class="text-xl font-bold">0 / 0</h3>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-xs flex items-center space-x-3.5">
+                <div class="w-11 h-11 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                    <i class="fa-solid fa-chart-line text-xl"></i>
+                </div>
+                <div>
+                    <span class="text-[11px] font-semibold tracking-wider uppercase text-slate-400">Tiến Độ Tích Lũy</span>
+                    <h3 id="statTotalDaysRatio" class="text-xl font-bold">0%</h3>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-xs flex items-center space-x-3.5">
+                <div class="w-11 h-11 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+                    <i class="fa-solid fa-fire-flame-curved text-xl"></i>
+                </div>
+                <div>
+                    <span class="text-[11px] font-semibold tracking-wider uppercase text-slate-400">Streak Liên Tục</span>
+                    <h3 id="statStreakDays" class="text-xl font-bold">0 ngày</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-slate-800 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-xs flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center space-x-1" id="viewModeTabs">
+                <button onclick="switchView('list')" id="tabBtn-list" class="px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-2 bg-indigo-600 text-white shadow-xs">
+                    <i class="fa-solid fa-list-check"></i>
+                    <span>Danh Sách & Check-in</span>
+                </button>
+                <button onclick="switchView('gantt')" id="tabBtn-gantt" class="px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center space-x-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60">
+                    <i class="fa-solid fa-chart-gantt"></i>
+                    <span>Gantt<span class="hidden sm:inline"> (Dòng Thời Gian)</span></span>
+                </button>
+                <button onclick="switchView('analytics')" id="tabBtn-analytics" class="px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center space-x-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <span>Thống Kê<span class="hidden sm:inline"> & Phân Tích</span></span>
+                </button>
+            </div>
+            <div class="px-3 py-1 text-[11px] font-semibold text-slate-400">
+                Tầm nhìn chiến lược 5 năm
+            </div>
+        </div>
+
+        <!-- VIEW CONTAINER 1: LIST & DAILY HABIT GRID -->
+        <div id="view-list" class="space-y-6">
+            <div class="bg-gradient-to-r from-indigo-700 via-indigo-600 to-violet-600 rounded-3xl p-5 sm:p-6 text-white shadow-lg shadow-indigo-600/15">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-indigo-500/40 pb-4 mb-4">
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-white/20 text-white backdrop-blur-sm">Check-in Hàng Ngày</span>
+                            <span id="currentDateDisplay" class="text-xs font-medium text-indigo-100"></span>
+                        </div>
+                        <h2 class="text-xl sm:text-2xl font-black mt-1">Mục Tiêu Cần Thực Thi Hôm Nay</h2>
+                    </div>
+                    <div class="text-xs text-indigo-100">
+                        Tích vào ô để đánh dấu hoàn thành nhiệm vụ ngày hôm nay.
+                    </div>
+                </div>
+
+                <!-- Dynamic List for Today's tasks -->
+                <div id="todayTasksList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    <!-- Dynamically populated -->
+                </div>
+            </div>
+
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 pt-2">
+                <!-- Domain Filters -->
+                <div class="flex flex-wrap items-center gap-1.5" id="domainFilterGroup">
+                    <button onclick="setDomainFilter('all')" data-filter="all" class="filter-chip px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-600 text-white transition-all">
+                        Tất cả lĩnh vực
+                    </button>
+                    <button onclick="setDomainFilter('career')" data-filter="career" class="filter-chip px-3 py-1.5 rounded-xl text-xs font-semibold bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 transition-all">
+                        💼 Sự nghiệp & Học vấn
+                    </button>
+                    <button onclick="setDomainFilter('finance')" data-filter="finance" class="filter-chip px-3 py-1.5 rounded-xl text-xs font-semibold bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 transition-all">
+                        💰 Tài chính & Đầu tư
+                    </button>
+                    <button onclick="setDomainFilter('health')" data-filter="health" class="filter-chip px-3 py-1.5 rounded-xl text-xs font-semibold bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 transition-all">
+                        🏃 Sức khỏe & Thể chất
+                    </button>
+                    <button onclick="setDomainFilter('personal')" data-filter="personal" class="filter-chip px-3 py-1.5 rounded-xl text-xs font-semibold bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 transition-all">
+                        🌱 Phát triển bản thân
+                    </button>
+                </div>
+
+                <!-- Search input -->
+                <div class="relative w-full md:w-64">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                    <input type="text" id="searchInput" oninput="handleSearch(this.value)" placeholder="Tìm kiếm kế hoạch..." class="w-full pl-9 pr-4 py-2 text-xs rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+            </div>
+
+            <div id="plansContainer" class="space-y-4">
+                <!-- Plans will be rendered here dynamically -->
+            </div>
+        </div>
+
+        <div id="view-gantt" class="hidden space-y-4">
+            <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200 dark:border-slate-700/80 shadow-xs">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-700/70 gap-3">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center space-x-2">
+                            <i class="fa-solid fa-chart-gantt text-indigo-600 dark:text-indigo-400"></i>
+                            <span>Sơ Đồ Dòng Thời Gian Chiến Lược (Gantt Timeline)</span>
+                        </h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Biểu diễn phân bố thời gian bắt đầu, kết thúc và tỷ lệ hoàn thành trên trục thời gian đa năm.</p>
+                    </div>
+                    <div class="flex items-center space-x-3 text-xs">
+                        <span class="flex items-center space-x-1.5"><span class="w-3 h-3 rounded-md bg-indigo-500 inline-block"></span><span class="text-slate-500">Sự nghiệp</span></span>
+                        <span class="flex items-center space-x-1.5"><span class="w-3 h-3 rounded-md bg-emerald-500 inline-block"></span><span class="text-slate-500">Tài chính</span></span>
+                        <span class="flex items-center space-x-1.5"><span class="w-3 h-3 rounded-md bg-rose-500 inline-block"></span><span class="text-slate-500">Sức khỏe</span></span>
+                        <span class="flex items-center space-x-1.5"><span class="w-3 h-3 rounded-md bg-amber-500 inline-block"></span><span class="text-slate-500">Bản thân</span></span>
+                    </div>
+                </div>
+
+                <!-- Gantt Chart Container -->
+                <div class="mt-6 overflow-x-auto pb-4">
+                    <div id="ganttTimelineWrapper" class="min-w-[760px] space-y-3">
+                        <!-- Dynamic Gantt bars populated by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-analytics" class="hidden space-y-5">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                <!-- Chart 1: Domain Distribution -->
+                <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200 dark:border-slate-700/80 shadow-xs">
+                    <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center space-x-2 mb-4">
+                        <i class="fa-solid fa-chart-pie text-indigo-500"></i>
+                        <span>Phân Bổ Kế Hoạch Theo Lĩnh Vực</span>
+                    </h3>
+                    <div class="h-64 flex items-center justify-center">
+                        <canvas id="chartDomainDistribution"></canvas>
+                    </div>
+                </div>
+
+                <!-- Chart 2: Completion Rates Per Plan -->
+                <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200 dark:border-slate-700/80 shadow-xs">
+                    <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center space-x-2 mb-4">
+                        <i class="fa-solid fa-chart-simple text-emerald-500"></i>
+                        <span>Tiến Độ Thực Thi Từng Kế Hoạch (%)</span>
+                    </h3>
+                    <div class="h-64 flex items-center justify-center">
+                        <canvas id="chartPlanProgress"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Health & Balance Matrix -->
+            <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200 dark:border-slate-700/80 shadow-xs">
+                <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100 mb-4 flex items-center space-x-2">
+                    <i class="fa-solid fa-scale-balanced text-amber-500"></i>
+                    <span>Đánh Giá Mức Độ Cân Bằng Chiến Lược 5 Năm</span>
+                </h3>
+                <div id="balanceInsights" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Empty state placeholder -->
+        <div id="emptyState" class="hidden flex flex-col items-center justify-center p-12 bg-white dark:bg-slate-800 rounded-3xl border border-dashed border-slate-300 dark:border-slate-700 text-center">
+            <div class="w-14 h-14 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded-2xl flex items-center justify-center text-xl mb-3">
+                <i class="fa-solid fa-compass-drafting"></i>
+            </div>
+            <h3 class="text-base font-bold text-slate-900 dark:text-slate-100">Chưa tìm thấy kế hoạch phù hợp</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400 max-w-sm mt-1 mb-4">Hãy tạo mới kế hoạch hoặc thay đổi bộ lọc tìm kiếm của bạn.</p>
+            <button onclick="openPlanModal()" class="px-4 py-2 bg-indigo-600 text-white text-xs font-semibold rounded-xl hover:bg-indigo-700 transition-all">
+                Thêm Kế Hoạch Mới
+            </button>
+        </div>
+    </main>
+
+    <div id="planModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden p-4 overflow-y-auto">
+        <div class="bg-white dark:bg-slate-800 rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 my-8">
+            <div class="flex justify-between items-center pb-4 mb-4 border-b border-slate-100 dark:border-slate-700">
+                <h3 id="planModalTitle" class="text-base font-bold">Thêm Kế Hoạch Mới</h3>
+                <button onclick="closePlanModal()" class="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg">
+                    <i class="fa-solid fa-xmark text-base"></i>
+                </button>
+            </div>
+
+            <form id="planForm" onsubmit="handlePlanSubmit(event)" class="space-y-4 text-xs">
+                <input type="hidden" id="planId">
+
+                <!-- Domain selector -->
+                <div>
+                    <label class="block font-semibold mb-1 text-slate-700 dark:text-slate-300">Lĩnh vực Chiến lược *</label>
+                    <select id="planDomain" class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="career">💼 Sự nghiệp & Học vấn</option>
+                        <option value="finance">💰 Tài chính & Đầu tư</option>
+                        <option value="health">🏃 Sức khỏe & Thể chất</option>
+                        <option value="personal">🌱 Phát triển bản thân & Thói quen</option>
+                    </select>
+                </div>
+
+                <!-- Plan Name -->
+                <div>
+                    <label class="block font-semibold mb-1 text-slate-700 dark:text-slate-300">Tên Kế Hoạch / Dự Án *</label>
+                    <input type="text" id="planTitle" required placeholder="Ví dụ: Đạt chứng chỉ AWS Solutions Architect & IELTS 7.5..." class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <!-- Goal Description -->
+                <div>
+                    <label class="block font-semibold mb-1 text-slate-700 dark:text-slate-300">Mục tiêu cụ thể (Target / Milestone)</label>
+                    <textarea id="planGoal" rows="2" placeholder="Ví dụ: Học 45 phút mỗi sáng, hoàn thành 2 bài test mỗi tuần..." class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+                </div>
+
+                <!-- Date Range Selection -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-semibold mb-1 text-slate-700 dark:text-slate-300">Ngày Bắt Đầu *</label>
+                        <input type="date" id="planStartDate" required class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block font-semibold mb-1 text-slate-700 dark:text-slate-300">Ngày Kết Thúc *</label>
+                        <input type="date" id="planEndDate" required class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                </div>
+
+                <!-- Footer buttons -->
+                <div class="flex justify-end space-x-2 pt-3 border-t border-slate-100 dark:border-slate-700">
+                    <button type="button" onclick="closePlanModal()" class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-300 transition-all">Hủy</button>
+                    <button type="submit" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-md transition-all">Lưu Kế Hoạch</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="calendarModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden p-4 overflow-y-auto">
+        <div class="bg-white dark:bg-slate-800 rounded-3xl max-w-4xl w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 my-8">
+            <div class="flex justify-between items-start pb-4 mb-4 border-b border-slate-100 dark:border-slate-700">
+                <div>
+                    <h3 id="calModalTitle" class="text-base font-bold text-slate-900 dark:text-slate-100">Bảng Đánh Dấu Chi Tiết Theo Ngày</h3>
+                    <p id="calModalSubtitle" class="text-xs text-slate-500 dark:text-slate-400 mt-0.5"></p>
+                </div>
+                <button onclick="closeCalendarModal()" class="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg">
+                    <i class="fa-solid fa-xmark text-base"></i>
+                </button>
+            </div>
+
+            <!-- Legend and quick stats -->
+            <div class="flex flex-wrap items-center justify-between gap-3 text-xs mb-4 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-2xl border border-slate-100 dark:border-slate-700/60">
+                <div class="flex items-center space-x-3">
+                    <span class="flex items-center space-x-1.5">
+                        <span class="w-3.5 h-3.5 rounded-md bg-emerald-500 inline-block"></span>
+                        <span class="text-slate-600 dark:text-slate-400 font-medium">Đã hoàn thành</span>
+                    </span>
+                    <span class="flex items-center space-x-1.5">
+                        <span class="w-3.5 h-3.5 rounded-md bg-slate-200 dark:bg-slate-700 inline-block"></span>
+                        <span class="text-slate-600 dark:text-slate-400 font-medium">Chưa thực hiện</span>
+                    </span>
+                    <span class="flex items-center space-x-1.5">
+                        <span class="w-3.5 h-3.5 rounded-md border-2 border-indigo-500 inline-block"></span>
+                        <span class="text-slate-600 dark:text-slate-400 font-medium">Hôm nay</span>
+                    </span>
+                </div>
+                <div id="calStatsSummary" class="font-semibold text-indigo-600 dark:text-indigo-400">
+                    0/0 ngày (0%)
+                </div>
+            </div>
+
+            <!-- Scrollable Day Grid Container -->
+            <div id="calendarGridContainer" class="max-h-[60vh] overflow-y-auto pr-1">
+                <!-- Day cells populated dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <div id="reminderModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden p-4 overflow-y-auto">
+        <div class="bg-white dark:bg-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 my-8 text-xs">
+            <div class="flex justify-between items-center pb-4 mb-4 border-b border-slate-100 dark:border-slate-700">
+                <h3 class="text-base font-bold"><i class="fa-solid fa-bell text-indigo-500 mr-2"></i>Nhắc nhở check-in</h3>
+                <button onclick="closeReminderModal()" class="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg"><i class="fa-solid fa-xmark text-base"></i></button>
+            </div>
+            <label class="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700/60 cursor-pointer">
+                <span><span class="block font-semibold text-sm">Bật thông báo</span><span id="reminderStatus" class="text-slate-500 dark:text-slate-400"></span></span>
+                <input type="checkbox" id="reminderEnabled" onchange="setRemindersEnabled(this.checked)" class="w-5 h-5 accent-indigo-600">
+            </label>
+            <div class="grid grid-cols-2 gap-3 mt-4">
+                <div><label class="block font-semibold mb-1">☀️ Nhắc buổi sáng</label>
+                    <input type="time" id="reminderTime0" onchange="saveReminderTimes()" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl"></div>
+                <div><label class="block font-semibold mb-1">🌙 Nhắc buổi tối</label>
+                    <input type="time" id="reminderTime1" onchange="saveReminderTimes()" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl"></div>
+            </div>
+            <p class="text-slate-500 dark:text-slate-400 mt-2">Chỉ nhắc khi hôm nay còn kế hoạch chưa check-in. Xóa giờ để tắt mốc đó.</p>
+            <button onclick="sendTestNotification()" class="mt-4 w-full px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold transition-all"><i class="fa-solid fa-paper-plane mr-1.5"></i>Gửi thông báo thử</button>
+            <div id="reminderHelp" class="mt-4 p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-200 leading-relaxed"></div>
+        </div>
+    </div>
+
+    <div id="toastNotification" class="fixed bottom-5 right-5 z-50 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-xl transform translate-y-24 opacity-0 transition-all duration-300 flex items-center space-x-3 text-xs">
+        <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-sm"></i>
+        <span id="toastMessage">Đã cập nhật thành công!</span>
+    </div>
+
+    <!-- Footer -->
+    <footer class="mt-auto py-5 text-center text-xs text-slate-400 border-t border-slate-200 dark:border-slate-800">
+        MasterPlan 5Y — Từng bước nhỏ mỗi ngày kiến tạo tương lai 5 năm.
+    </footer>
+
+    <script>
+        // --- DOMAIN METADATA CONFIGURATION ---
+        const DOMAIN_CONFIG = {
+            career: { label: 'Sự nghiệp & Học vấn', icon: 'fa-briefcase', color: 'indigo' },
+            finance: { label: 'Tài chính & Đầu tư', icon: 'fa-coins', color: 'emerald' },
+            health: { label: 'Sức khỏe & Thể chất', icon: 'fa-heart-pulse', color: 'rose' },
+            personal: { label: 'Phát triển bản thân', icon: 'fa-seedling', color: 'amber' }
+        };
+
+        // --- SEED SAMPLE DATA FOR INITIAL RUN ---
+        const todayStr = getIsoDate(new Date());
+
+        const INITIAL_PLANS = [
+            {
+                id: 'plan_1',
+                domain: 'career',
+                title: 'Nâng cao năng lực kỹ thuật & Đạt chứng chỉ Chuyên sâu',
+                goal: 'Học 1 giờ mỗi ngày và giải quyết 1 bài toán thực tế.',
+                startDate: formatDateOffset(-10),
+                endDate: formatDateOffset(80),
+                completedDays: [formatDateOffset(-5), formatDateOffset(-4), formatDateOffset(-3), formatDateOffset(-2), formatDateOffset(-1), todayStr]
+            },
+            {
+                id: 'plan_2',
+                domain: 'health',
+                title: 'Chạy bộ 3km & Rèn luyện thể lực bền bỉ',
+                goal: 'Duy trì thói quen vận động ít nhất 20 phút mỗi ngày.',
+                startDate: formatDateOffset(-20),
+                endDate: formatDateOffset(40),
+                completedDays: [formatDateOffset(-3), formatDateOffset(-2), formatDateOffset(-1)]
+            },
+            {
+                id: 'plan_3',
+                domain: 'finance',
+                title: 'Ghi chép chi tiêu & Đầu tư tích sản định kỳ',
+                goal: 'Kiểm soát dòng tiền và duy trì kỷ luật tích lũy mỗi ngày.',
+                startDate: formatDateOffset(-30),
+                endDate: formatDateOffset(120),
+                completedDays: [formatDateOffset(-1), todayStr]
+            }
+        ];
+
+        // --- APPLICATION STATE ---
+        let plans = JSON.parse(localStorage.getItem('masterplan_5y_data')) || INITIAL_PLANS;
+        let currentFilter = 'all';
+        let searchQuery = '';
+        let activeCalendarPlanId = null;
+        let activeView = 'list';
+        let chartInstances = {};
+
+        // --- STREAMING_CHUNK:View Switching Logic ---
+        function switchView(viewName) {
+            activeView = viewName;
+
+            // Toggle view containers
+            ['list', 'gantt', 'analytics'].forEach(v => {
+                const el = document.getElementById(`view-${v}`);
+                const tab = document.getElementById(`tabBtn-${v}`);
+                if (v === viewName) {
+                    el.classList.remove('hidden');
+                    tab.className = 'px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-2 bg-indigo-600 text-white shadow-xs';
+                } else {
+                    el.classList.add('hidden');
+                    tab.className = 'px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center space-x-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60';
+                }
+            });
+
+            if (viewName === 'gantt') {
+                renderGanttChart();
+            } else if (viewName === 'analytics') {
+                renderAnalyticsCharts();
+            }
+        }
+
+        // --- HELPER DATE FUNCTIONS ---
+        function getIsoDate(d) {
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function formatDateOffset(daysOffset) {
+            const d = new Date();
+            d.setDate(d.getDate() + daysOffset);
+            return getIsoDate(d);
+        }
+
+        function formatDisplayDate(isoString) {
+            if (!isoString) return '';
+            const [y, m, d] = isoString.split('-');
+            return `${d}/${m}/${y}`;
+        }
+
+        function getDatesInRange(startIso, endIso) {
+            const dates = [];
+            let curr = new Date(startIso);
+            const stop = new Date(endIso);
+            while (curr <= stop) {
+                dates.push(getIsoDate(curr));
+                curr.setDate(curr.getDate() + 1);
+            }
+            return dates;
+        }
+
+        // --- STREAMING_CHUNK:Theme setup and persistence ---
+        const themeToggleBtn = document.getElementById('themeToggleBtn');
+        const htmlElement = document.documentElement;
+
+        function initTheme() {
+            const savedTheme = localStorage.getItem('masterplan_theme') || 'light';
+            if (savedTheme === 'dark') {
+                htmlElement.classList.add('dark');
+            } else {
+                htmlElement.classList.remove('dark');
+            }
+        }
+
+        themeToggleBtn.addEventListener('click', () => {
+            if (htmlElement.classList.contains('dark')) {
+                htmlElement.classList.remove('dark');
+                localStorage.setItem('masterplan_theme', 'light');
+            } else {
+                htmlElement.classList.add('dark');
+                localStorage.setItem('masterplan_theme', 'dark');
+            }
+        });
+
+        // --- TOAST NOTIFICATIONS ---
+        function showToast(msg, type = 'success') {
+            const toast = document.getElementById('toastNotification');
+            const text = document.getElementById('toastMessage');
+            const icon = document.getElementById('toastIcon');
+
+            text.textContent = msg;
+            if (type === 'success') {
+                icon.className = 'fa-solid fa-circle-check text-emerald-400 text-sm';
+            } else {
+                icon.className = 'fa-solid fa-circle-exclamation text-amber-400 text-sm';
+            }
+
+            toast.classList.remove('translate-y-24', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-24', 'opacity-0');
+            }, 2500);
+        }
+
+        // --- STORAGE SYNC ---
+        function saveToStorage() {
+            localStorage.setItem('masterplan_5y_data', JSON.stringify(plans));
+            syncReminderState();
+            updateOverallStats();
+            if (activeView === 'list') {
+                renderTodayTasks();
+                renderPlans();
+            } else if (activeView === 'gantt') {
+                renderGanttChart();
+            } else if (activeView === 'analytics') {
+                renderAnalyticsCharts();
+            }
+        }
+
+        // --- STREAMING_CHUNK:Metrics and Statistics Engine ---
+        function updateOverallStats() {
+            const today = getIsoDate(new Date());
+
+            // 1. Total plans
+            document.getElementById('statTotalPlans').textContent = plans.length;
+
+            // 2. Today check-in ratio
+            const activePlansToday = plans.filter(p => today >= p.startDate && today <= p.endDate);
+            const doneToday = activePlansToday.filter(p => p.completedDays.includes(today)).length;
+            document.getElementById('statTodayCheckRatio').textContent = `${doneToday} / ${activePlansToday.length}`;
+
+            // 3. Accumulated days ratio
+            let totalRangeDays = 0;
+            let totalCompletedDays = 0;
+            plans.forEach(p => {
+                const dates = getDatesInRange(p.startDate, p.endDate);
+                totalRangeDays += dates.length;
+                totalCompletedDays += p.completedDays.length;
+            });
+            const totalRatio = totalRangeDays > 0 ? Math.round((totalCompletedDays / totalRangeDays) * 100) : 0;
+            document.getElementById('statTotalDaysRatio').textContent = `${totalRatio}%`;
+
+            // 4. Consecutive streak calculation across any plan
+            let streak = 0;
+            let checkCursor = new Date();
+            // If today is checked in at least one plan, start count from today; else start from yesterday
+            let isTodayChecked = plans.some(p => p.completedDays.includes(getIsoDate(checkCursor)));
+            if (!isTodayChecked) {
+                checkCursor.setDate(checkCursor.getDate() - 1);
+            }
+            while (true) {
+                const cursorIso = getIsoDate(checkCursor);
+                const hasDone = plans.some(p => p.completedDays.includes(cursorIso));
+                if (hasDone) {
+                    streak++;
+                    checkCursor.setDate(checkCursor.getDate() - 1);
+                } else {
+                    break;
+                }
+            }
+            document.getElementById('statStreakDays').textContent = `${streak} ngày`;
+        }
+
+        // --- STREAMING_CHUNK:Rendering Today Focus widget ---
+        function renderTodayTasks() {
+            const container = document.getElementById('todayTasksList');
+            const today = getIsoDate(new Date());
+            
+            // Format vietnamese date string
+            const now = new Date();
+            const daysOfWeek = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+            document.getElementById('currentDateDisplay').textContent = `${daysOfWeek[now.getDay()]}, ${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`;
+
+            const activePlansToday = plans.filter(p => today >= p.startDate && today <= p.endDate);
+
+            if (activePlansToday.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full py-3 text-center text-xs text-indigo-100 bg-white/10 rounded-2xl">
+                        Hôm nay không có kế hoạch nào trong giai đoạn thực thi.
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = '';
+            activePlansToday.forEach(plan => {
+                const isChecked = plan.completedDays.includes(today);
+                const domain = DOMAIN_CONFIG[plan.domain] || DOMAIN_CONFIG.career;
+
+                const card = document.createElement('div');
+                card.className = `p-3.5 rounded-2xl backdrop-blur-sm border transition-all flex items-center justify-between ${
+                    isChecked 
+                        ? 'bg-emerald-500/25 border-emerald-400/40 text-white' 
+                        : 'bg-white/10 border-white/15 hover:bg-white/15 text-white'
+                }`;
+
+                card.innerHTML = `
+                    <div class="flex items-center space-x-3 overflow-hidden pr-2">
+                        <div class="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center text-xs shrink-0">
+                            <i class="fa-solid ${domain.icon}"></i>
+                        </div>
+                        <div class="truncate">
+                            <h4 class="font-bold text-xs truncate leading-tight">${plan.title}</h4>
+                            <p class="text-[10px] text-indigo-100 truncate mt-0.5">${plan.goal || 'Không có ghi chú'}</p>
+                        </div>
+                    </div>
+                    <button onclick="toggleDayCheck('${plan.id}', '${today}')" class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center space-x-1 ${
+                        isChecked 
+                            ? 'bg-white text-emerald-600 shadow-sm' 
+                            : 'bg-white/20 hover:bg-white/30 text-white'
+                    }">
+                        <i class="fa-solid ${isChecked ? 'fa-circle-check' : 'fa-circle'}"></i>
+                        <span>${isChecked ? 'Đã xong' : 'Điểm danh'}</span>
+                    </button>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // --- STREAMING_CHUNK:Rendering main plans feed with daily previews ---
+        function renderPlans() {
+            const container = document.getElementById('plansContainer');
+            const emptyState = document.getElementById('emptyState');
+            const today = getIsoDate(new Date());
+
+            let filtered = plans.filter(p => {
+                const matchDomain = (currentFilter === 'all') || (p.domain === currentFilter);
+                const matchSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                                    (p.goal && p.goal.toLowerCase().includes(searchQuery.toLowerCase()));
+                return matchDomain && matchSearch;
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+            emptyState.classList.add('hidden');
+            container.innerHTML = '';
+
+            filtered.forEach(plan => {
+                const domain = DOMAIN_CONFIG[plan.domain] || DOMAIN_CONFIG.career;
+                const totalRangeDates = getDatesInRange(plan.startDate, plan.endDate);
+                const totalDaysCount = totalRangeDates.length;
+                const completedCount = plan.completedDays.length;
+                const percent = totalDaysCount > 0 ? Math.round((completedCount / totalDaysCount) * 100) : 0;
+
+                // Slice recent 14 days around today or window of days for quick view
+                const recentDates = totalRangeDates.slice(0, 14);
+
+                let recentDaysHtml = '';
+                recentDates.forEach(dateStr => {
+                    const isChecked = plan.completedDays.includes(dateStr);
+                    const isCurrentDay = (dateStr === today);
+                    const dayNum = dateStr.split('-')[2];
+
+                    recentDaysHtml += `
+                        <button onclick="toggleDayCheck('${plan.id}', '${dateStr}')" 
+                                class="day-box w-7 h-8 rounded-lg flex flex-col items-center justify-center text-[10px] font-bold border transition-all ${
+                                    isChecked 
+                                        ? 'bg-emerald-500 border-emerald-500 text-white shadow-xs' 
+                                        : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-indigo-400'
+                                } ${isCurrentDay ? 'ring-2 ring-indigo-500 ring-offset-1 dark:ring-offset-slate-800' : ''}" 
+                                title="${formatDisplayDate(dateStr)}: ${isChecked ? 'Đã hoàn thành' : 'Chưa đánh dấu'}">
+                            <span class="text-[9px] opacity-75">${dayNum}</span>
+                            <i class="fa-solid ${isChecked ? 'fa-check' : 'fa-minus'} text-[8px] mt-0.5"></i>
+                        </button>
+                    `;
+                });
+
+                const card = document.createElement('div');
+                card.className = 'bg-white dark:bg-slate-800 rounded-3xl p-5 border border-slate-200 dark:border-slate-700/80 shadow-xs hover:shadow-md transition-all';
+
+                card.innerHTML = `
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-700/60">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-xl bg-${domain.color}-50 dark:bg-${domain.color}-950/40 text-${domain.color}-600 dark:text-${domain.color}-400 flex items-center justify-center text-sm shrink-0">
+                                <i class="fa-solid ${domain.icon}"></i>
+                            </div>
+                            <div>
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">${domain.label}</span>
+                                    <span class="text-xs text-slate-400">${formatDisplayDate(plan.startDate)} - ${formatDisplayDate(plan.endDate)}</span>
+                                </div>
+                                <h3 class="font-bold text-sm sm:text-base text-slate-900 dark:text-slate-100 mt-0.5">${plan.title}</h3>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center space-x-1.5 self-end sm:self-center">
+                            <button onclick="openCalendarModal('${plan.id}')" class="px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 text-xs font-semibold hover:bg-indigo-100 transition-all flex items-center space-x-1.5">
+                                <i class="fa-solid fa-calendar-days"></i>
+                                <span>Xem toàn bộ ngày</span>
+                            </button>
+                            <button onclick="editPlan('${plan.id}')" class="p-2 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all" title="Chỉnh sửa">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            <button onclick="deletePlan('${plan.id}')" class="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all" title="Xóa kế hoạch">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Description / Target -->
+                    ${plan.goal ? `<p class="text-xs text-slate-500 dark:text-slate-400 mt-2.5 bg-slate-50 dark:bg-slate-900/40 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">${plan.goal}</p>` : ''}
+
+                    <!-- Progress bar -->
+                    <div class="mt-3.5 space-y-1">
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="font-medium text-slate-500 dark:text-slate-400">Tiến độ hoàn thành: <span class="font-bold text-slate-700 dark:text-slate-200">${completedCount}</span> / ${totalDaysCount} ngày</span>
+                            <span class="font-bold text-indigo-600 dark:text-indigo-400">${percent}%</span>
+                        </div>
+                        <div class="w-full bg-slate-100 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
+                            <div class="bg-indigo-600 h-full rounded-full transition-all duration-300" style="width: ${percent}%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Daily check shortcuts (Initial Days Strip) -->
+                    <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700/60">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-[11px] font-semibold text-slate-400">Check-in nhanh (Mở đầu / Gần nhất):</span>
+                            <button onclick="openCalendarModal('${plan.id}')" class="text-[11px] text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">
+                                Xem tất cả ${totalDaysCount} ngày &rarr;
+                            </button>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-1.5">
+                            ${recentDaysHtml}
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // --- STREAMING_CHUNK:Day Check Toggle logic with Streak recalculations ---
+        function toggleDayCheck(planId, dateIso) {
+            const plan = plans.find(p => p.id === planId);
+            if (!plan) return;
+
+            const idx = plan.completedDays.indexOf(dateIso);
+            if (idx > -1) {
+                plan.completedDays.splice(idx, 1);
+            } else {
+                plan.completedDays.push(dateIso);
+            }
+
+            saveToStorage();
+
+            // Refresh modal if active
+            if (activeCalendarPlanId === planId) {
+                renderCalendarModalContent(plan);
+            }
+        }
+
+        // --- STREAMING_CHUNK:Filter and Search Handlers ---
+        function setDomainFilter(domainKey) {
+            currentFilter = domainKey;
+            document.querySelectorAll('#domainFilterGroup .filter-chip').forEach(btn => {
+                if (btn.getAttribute('data-filter') === domainKey) {
+                    btn.className = 'filter-chip px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-600 text-white transition-all';
+                } else {
+                    btn.className = 'filter-chip px-3 py-1.5 rounded-xl text-xs font-semibold bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 transition-all';
+                }
+            });
+            renderPlans();
+        }
+
+        function handleSearch(val) {
+            searchQuery = val;
+            renderPlans();
+        }
+
+        // --- STREAMING_CHUNK:Plan Modal Create/Edit Flow ---
+        function openPlanModal(planId = null) {
+            const modal = document.getElementById('planModal');
+            const titleEl = document.getElementById('planModalTitle');
+            const form = document.getElementById('planForm');
+            form.reset();
+
+            if (planId) {
+                titleEl.textContent = 'Chỉnh Sửa Kế Hoạch';
+                const p = plans.find(item => item.id === planId);
+                if (!p) return;
+                document.getElementById('planId').value = p.id;
+                document.getElementById('planDomain').value = p.domain;
+                document.getElementById('planTitle').value = p.title;
+                document.getElementById('planGoal').value = p.goal || '';
+                document.getElementById('planStartDate').value = p.startDate;
+                document.getElementById('planEndDate').value = p.endDate;
+            } else {
+                titleEl.textContent = 'Tạo Kế Hoạch Chiến Lược Mới';
+                document.getElementById('planId').value = '';
+                document.getElementById('planStartDate').value = getIsoDate(new Date());
+                document.getElementById('planEndDate').value = formatDateOffset(90);
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function closePlanModal() {
+            document.getElementById('planModal').classList.add('hidden');
+        }
+
+        function handlePlanSubmit(e) {
+            e.preventDefault();
+            const id = document.getElementById('planId').value;
+            const domain = document.getElementById('planDomain').value;
+            const title = document.getElementById('planTitle').value.trim();
+            const goal = document.getElementById('planGoal').value.trim();
+            const startDate = document.getElementById('planStartDate').value;
+            const endDate = document.getElementById('planEndDate').value;
+
+            if (new Date(startDate) > new Date(endDate)) {
+                showToast('Ngày bắt đầu không được sau ngày kết thúc!', 'error');
+                return;
+            }
+
+            if (id) {
+                // Update
+                const p = plans.find(item => item.id === id);
+                if (p) {
+                    p.domain = domain;
+                    p.title = title;
+                    p.goal = goal;
+                    p.startDate = startDate;
+                    p.endDate = endDate;
+                    // Filter out completedDays that fell out of new range
+                    p.completedDays = p.completedDays.filter(d => d >= startDate && d <= endDate);
+                }
+                showToast('Đã cập nhật kế hoạch thành công!');
+            } else {
+                // Create
+                const newPlan = {
+                    id: 'plan_' + Date.now(),
+                    domain,
+                    title,
+                    goal,
+                    startDate,
+                    endDate,
+                    completedDays: []
+                };
+                plans.unshift(newPlan);
+                showToast('Đã thêm kế hoạch chiến lược mới!');
+            }
+
+            saveToStorage();
+            closePlanModal();
+        }
+
+        function editPlan(id) {
+            openPlanModal(id);
+        }
+
+        function deletePlan(id) {
+            if (confirm('Bạn có chắc chắn muốn xóa kế hoạch này cùng toàn bộ lịch sử check-in không?')) {
+                plans = plans.filter(p => p.id !== id);
+                saveToStorage();
+                showToast('Đã xóa kế hoạch!');
+            }
+        }
+
+        // --- STREAMING_CHUNK:Full Calendar Matrix View Generator ---
+        function openCalendarModal(planId) {
+            const plan = plans.find(p => p.id === planId);
+            if (!plan) return;
+            activeCalendarPlanId = planId;
+
+            document.getElementById('calModalTitle').textContent = plan.title;
+            document.getElementById('calModalSubtitle').textContent = `Thời gian: ${formatDisplayDate(plan.startDate)} - ${formatDisplayDate(plan.endDate)}`;
+
+            renderCalendarModalContent(plan);
+            document.getElementById('calendarModal').classList.remove('hidden');
+        }
+
+        function renderCalendarModalContent(plan) {
+            const gridContainer = document.getElementById('calendarGridContainer');
+            const summary = document.getElementById('calStatsSummary');
+            const today = getIsoDate(new Date());
+
+            const dates = getDatesInRange(plan.startDate, plan.endDate);
+            const total = dates.length;
+            const done = plan.completedDays.length;
+            const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+            summary.textContent = `Đã hoàn thành ${done}/${total} ngày (${pct}%)`;
+
+            // Group by Month & Year for neat organized layout
+            const monthGroups = {};
+            dates.forEach(d => {
+                const [y, m] = d.split('-');
+                const groupKey = `Tháng ${parseInt(m)} / ${y}`;
+                if (!monthGroups[groupKey]) monthGroups[groupKey] = [];
+                monthGroups[groupKey].push(d);
+            });
+
+            gridContainer.innerHTML = '';
+
+            for (const [monthLabel, mDates] of Object.entries(monthGroups)) {
+                const section = document.createElement('div');
+                section.className = 'mb-4';
+
+                let monthCells = '';
+                mDates.forEach(dateStr => {
+                    const isChecked = plan.completedDays.includes(dateStr);
+                    const isCurrent = (dateStr === today);
+                    const dayNum = parseInt(dateStr.split('-')[2]);
+
+                    monthCells += `
+                        <button onclick="toggleDayCheck('${plan.id}', '${dateStr}')" 
+                                class="day-box h-10 rounded-xl flex flex-col items-center justify-center text-xs font-semibold border transition-all ${
+                                    isChecked 
+                                        ? 'bg-emerald-500 border-emerald-500 text-white shadow-xs' 
+                                        : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-indigo-400'
+                                } ${isCurrent ? 'ring-2 ring-indigo-500 ring-offset-2 dark:ring-offset-slate-800' : ''}"
+                                title="${formatDisplayDate(dateStr)}">
+                            <span class="text-[10px] leading-none opacity-80">${dayNum}</span>
+                            <i class="fa-solid ${isChecked ? 'fa-check' : 'fa-circle'} text-[8px] mt-1 ${isChecked ? '' : 'opacity-20'}"></i>
+                        </button>
+                    `;
+                });
+
+                section.innerHTML = `
+                    <h5 class="text-xs font-bold text-slate-500 dark:text-slate-400 mb-2">${monthLabel}</h5>
+                    <div class="grid grid-cols-7 sm:grid-cols-10 md:grid-cols-14 gap-1.5">
+                        ${monthCells}
+                    </div>
+                `;
+                gridContainer.appendChild(section);
+            }
+        }
+
+        function closeCalendarModal() {
+            document.getElementById('calendarModal').classList.add('hidden');
+            activeCalendarPlanId = null;
+        }
+
+        // --- STREAMING_CHUNK:Rendering Gantt Chart / Timeline Visualization ---
+        function renderGanttChart() {
+            const container = document.getElementById('ganttTimelineWrapper');
+            if (!container) return;
+
+            if (plans.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 py-8 text-center">Chưa có kế hoạch nào để vẽ sơ đồ dòng thời gian.</p>`;
+                return;
+            }
+
+            // Determine global timeline boundary (min start date to max end date)
+            let minTime = Infinity;
+            let maxTime = -Infinity;
+
+            plans.forEach(p => {
+                const s = new Date(p.startDate).getTime();
+                const e = new Date(p.endDate).getTime();
+                if (s < minTime) minTime = s;
+                if (e > maxTime) maxTime = e;
+            });
+
+            // Ensure at least 6 months spread for aesthetic scaling
+            const totalDuration = Math.max(maxTime - minTime, 1000 * 60 * 60 * 24 * 180);
+            const nowTime = new Date().getTime();
+
+            // Construct Timeline Header (Quarter / Year markers)
+            const startDateObj = new Date(minTime);
+            const endDateObj = new Date(maxTime);
+            let timeMarkersHtml = '';
+            const steps = 6;
+            for (let i = 0; i <= steps; i++) {
+                const markerDate = new Date(minTime + (totalDuration / steps) * i);
+                const label = `${markerDate.getMonth() + 1}/${markerDate.getFullYear()}`;
+                timeMarkersHtml += `<span class="text-[10px] font-semibold text-slate-400">${label}</span>`;
+            }
+
+            // Current day marker percentage
+            const todayOffsetPct = Math.max(0, Math.min(100, ((nowTime - minTime) / totalDuration) * 100));
+
+            let rowsHtml = '';
+            plans.forEach((plan, idx) => {
+                const domain = DOMAIN_CONFIG[plan.domain] || DOMAIN_CONFIG.career;
+                const pStart = new Date(plan.startDate).getTime();
+                const pEnd = new Date(plan.endDate).getTime();
+
+                const leftPct = Math.max(0, Math.min(100, ((pStart - minTime) / totalDuration) * 100));
+                const widthPct = Math.max(2, Math.min(100 - leftPct, ((pEnd - pStart) / totalDuration) * 100));
+
+                const dates = getDatesInRange(plan.startDate, plan.endDate);
+                const pct = dates.length > 0 ? Math.round((plan.completedDays.length / dates.length) * 100) : 0;
+
+                const bgColors = {
+                    career: 'bg-indigo-500',
+                    finance: 'bg-emerald-500',
+                    health: 'bg-rose-500',
+                    personal: 'bg-amber-500'
+                };
+                const barColor = bgColors[plan.domain] || 'bg-indigo-500';
+
+                rowsHtml += `
+                    <div class="group relative bg-slate-50 dark:bg-slate-900/60 rounded-2xl p-3 border border-slate-100 dark:border-slate-700/60 hover:border-indigo-400 transition-all">
+                        <div class="flex items-center justify-between text-xs mb-2">
+                            <div class="flex items-center space-x-2">
+                                <span class="w-6 h-6 rounded-lg ${barColor} text-white flex items-center justify-center text-[10px]"><i class="fa-solid ${domain.icon}"></i></span>
+                                <span class="font-bold text-slate-800 dark:text-slate-200">${plan.title}</span>
+                                <span class="text-[10px] text-slate-400">(${formatDisplayDate(plan.startDate)} &rarr; ${formatDisplayDate(plan.endDate)})</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="font-bold text-indigo-600 dark:text-indigo-400 text-xs">${pct}%</span>
+                                <button onclick="openCalendarModal('${plan.id}')" class="text-[10px] text-slate-400 hover:text-indigo-500 font-semibold" title="Xem chi tiết ngày">
+                                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Gantt track line -->
+                        <div class="relative w-full h-7 bg-slate-200 dark:bg-slate-800 rounded-xl overflow-hidden p-1">
+                            <!-- Today indicator line on track -->
+                            <div class="absolute top-0 bottom-0 w-0.5 bg-rose-500 z-10 opacity-70" style="left: ${todayOffsetPct}%;" title="Hôm nay"></div>
+
+                            <!-- Gantt span bar -->
+                            <div class="absolute top-1 bottom-1 rounded-lg ${barColor} shadow-xs flex items-center px-2 text-[10px] text-white font-bold transition-all duration-500 overflow-hidden" 
+                                 style="left: ${leftPct}%; width: ${widthPct}%;">
+                                <div class="absolute inset-0 bg-white/20" style="width: ${pct}%;"></div>
+                                <span class="relative z-10 truncate">${pct}% hoàn thành</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = `
+                <!-- Timeline Header Bar -->
+                <div class="flex justify-between px-2 pb-2 border-b border-slate-200 dark:border-slate-700/60 mb-2">
+                    ${timeMarkersHtml}
+                </div>
+                <div class="space-y-2.5">
+                    ${rowsHtml}
+                </div>
+            `;
+        }
+
+        // --- STREAMING_CHUNK:Rendering Analytics & Chart.js Visualizations ---
+        function renderAnalyticsCharts() {
+            // Destroy prior instances to avoid canvas overlay glitches
+            if (chartInstances.domain) chartInstances.domain.destroy();
+            if (chartInstances.progress) chartInstances.progress.destroy();
+
+            const isDark = document.documentElement.classList.contains('dark');
+            const textColor = isDark ? '#94a3b8' : '#64748b';
+
+            // 1. Domain distribution data
+            const domainCounts = { career: 0, finance: 0, health: 0, personal: 0 };
+            plans.forEach(p => {
+                if (domainCounts[p.domain] !== undefined) domainCounts[p.domain]++;
+            });
+
+            const ctxDomain = document.getElementById('chartDomainDistribution');
+            if (ctxDomain) {
+                chartInstances.domain = new Chart(ctxDomain, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Sự nghiệp & Học vấn', 'Tài chính & Đầu tư', 'Sức khỏe', 'Phát triển bản thân'],
+                        datasets: [{
+                            data: [domainCounts.career, domainCounts.finance, domainCounts.health, domainCounts.personal],
+                            backgroundColor: ['#6366f1', '#10b981', '#f43f5e', '#f59e0b'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: { color: textColor, font: { family: 'Inter', size: 11 } }
+                            }
+                        },
+                        cutout: '70%'
+                    }
+                });
+            }
+
+            // 2. Completion rate per plan chart
+            const labels = plans.map(p => p.title.length > 20 ? p.title.substring(0, 18) + '...' : p.title);
+            const percentages = plans.map(p => {
+                const total = getDatesInRange(p.startDate, p.endDate).length;
+                return total > 0 ? Math.round((p.completedDays.length / total) * 100) : 0;
+            });
+
+            const ctxProgress = document.getElementById('chartPlanProgress');
+            if (ctxProgress) {
+                chartInstances.progress = new Chart(ctxProgress, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: '% Hoàn thành',
+                            data: percentages,
+                            backgroundColor: '#6366f1',
+                            borderRadius: 8
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                ticks: { color: textColor, callback: val => val + '%' },
+                                grid: { color: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }
+                            },
+                            x: {
+                                ticks: { color: textColor, font: { size: 10 } },
+                                grid: { display: false }
+                            }
+                        },
+                        plugins: {
+                            legend: { display: false }
+                        }
+                    }
+                });
+            }
+
+            // 3. Balance insight cards
+            const balanceContainer = document.getElementById('balanceInsights');
+            if (balanceContainer) {
+                balanceContainer.innerHTML = Object.entries(DOMAIN_CONFIG).map(([key, item]) => {
+                    const count = domainCounts[key] || 0;
+                    return `
+                        <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700/60 flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-xl bg-${item.color}-50 dark:bg-${item.color}-950/40 text-${item.color}-600 dark:text-${item.color}-400 flex items-center justify-center text-sm">
+                                <i class="fa-solid ${item.icon}"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-xs font-bold">${item.label}</h4>
+                                <p class="text-[11px] text-slate-400 mt-0.5">${count} kế hoạch đang chạy</p>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        // --- STREAMING_CHUNK:JSON Data Backup & Restore Operations ---
+        function exportData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(plans, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `masterplan_backup_${getIsoDate(new Date())}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            showToast('Đã xuất file sao lưu dữ liệu!');
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    if (Array.isArray(parsed)) {
+                        plans = parsed;
+                        saveToStorage();
+                        showToast('Phục hồi dữ liệu thành công!');
+                    } else {
+                        showToast('Định dạng file không hợp lệ!', 'error');
+                    }
+                } catch (err) {
+                    showToast('Lỗi khi đọc file sao lưu!', 'error');
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+
+        // --- PWA: SERVICE WORKER, CÀI ĐẶT & NHẮC NHỞ ---
+        const LN = (window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform()) ? Capacitor.Plugins.LocalNotifications : null;
+        let nativePerm = 'default';
+        const NATIVE_HELP = '<b>Android:</b> nhắc nhở được đặt lịch bằng hệ thống nên vẫn hiện đúng giờ khi đóng app. Nếu máy tiết kiệm pin quá mạnh (Xiaomi, Oppo, Vivo...), hãy cho MasterPlan "Không hạn chế" pin / "Tự khởi động". Mỗi lần mở app, lịch 7 ngày tới được cập nhật lại.';
+        async function getPerm(ask) {
+            if (LN) {
+                let p = await LN.checkPermissions();
+                if (ask && p.display !== 'granted' && p.display !== 'denied') p = await LN.requestPermissions();
+                nativePerm = p.display === 'granted' ? 'granted' : p.display === 'denied' ? 'denied' : 'default';
+                return nativePerm;
+            }
+            let perm = Notification.permission;
+            if (ask && perm === 'default') perm = await Notification.requestPermission();
+            return perm;
+        }
+        async function scheduleNative() {
+            if (!LN) return;
+            try {
+                const pend = await LN.getPending();
+                const old = pend.notifications.filter(n => n.id !== 999).map(n => ({ id: n.id }));
+                if (old.length) await LN.cancel({ notifications: old });
+                if (!reminderSettings.enabled || nativePerm !== 'granted') return;
+                const list = [], now = new Date(); let id = 1;
+                for (let d = 0; d < 7; d++) {
+                    const day = new Date(now.getFullYear(), now.getMonth(), now.getDate() + d), iso = getIsoDate(day);
+                    const active = plans.filter(p => iso >= p.startDate && iso <= p.endDate);
+                    const pending = active.filter(p => !p.completedDays.includes(iso));
+                    if (!pending.length) continue;
+                    (reminderSettings.times || []).forEach(t => {
+                        const m = /^(\d{2}):(\d{2})$/.exec(t || ''); if (!m) return;
+                        const at = new Date(day); at.setHours(+m[1], +m[2], 0, 0); if (at <= now) return;
+                        const body = d === 0
+                            ? pending.slice(0, 3).map(p => '• ' + p.title).join('\n') + (pending.length > 3 ? `\n…và ${pending.length - 3} mục tiêu khác` : '')
+                            : `Có ${active.length} mục tiêu cần thực hiện hôm nay.`;
+                        list.push({ id: id++, title: +m[1] < 12 ? `☀️ Hôm nay có ${pending.length} mục tiêu cần thực hiện` : `🌙 Còn ${pending.length} mục tiêu chưa check-in`, body, schedule: { at, allowWhileIdle: true } });
+                    });
+                }
+                if (list.length) await LN.schedule({ notifications: list });
+            } catch (e) {}
+        }
+        let swReg = null, deferredInstall = null;
+        let reminderSettings = JSON.parse(localStorage.getItem('masterplan_reminders') || 'null') || { enabled: false, times: ['08:00', '20:30'] };
+        const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+
+        if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+            navigator.serviceWorker.register('sw.js').then(r => { swReg = r; }).catch(() => {});
+        }
+        window.addEventListener('beforeinstallprompt', e => {
+            e.preventDefault(); deferredInstall = e;
+            document.getElementById('installBtn').classList.replace('hidden', 'flex');
+        });
+        window.addEventListener('appinstalled', () => { document.getElementById('installBtn').classList.add('hidden'); showToast('Đã cài ứng dụng!'); });
+        async function installApp() {
+            if (!deferredInstall) return;
+            deferredInstall.prompt(); await deferredInstall.userChoice; deferredInstall = null;
+            document.getElementById('installBtn').classList.add('hidden');
+        }
+
+        function notifSupported() { return !!LN || 'Notification' in window; }
+        async function pageShow(title, body) {
+            if (LN) { await LN.schedule({ notifications: [{ id: 999, title, body, schedule: { at: new Date(Date.now() + 1500) } }] }); return; }
+            const opts = { body, icon: 'icons/icon-192.png', badge: 'icons/badge-96.png', tag: 'masterplan-daily', renotify: true, data: { url: './' } };
+            try {
+                const reg = swReg || (navigator.serviceWorker && await navigator.serviceWorker.getRegistration());
+                if (reg) { await reg.showNotification(title, opts); return; }
+            } catch (e) {}
+            try { new Notification(title, opts); } catch (e) {}
+        }
+        function syncReminderState() {
+            scheduleNative();
+            if (!window.MP) return;
+            MP.kvSet('plans', plans).catch(() => {});
+            MP.kvSet('settings', reminderSettings).catch(() => {});
+            if (!MP.pendingToday(plans).length && swReg && swReg.getNotifications) { // làm xong hết → dọn thông báo cũ
+                swReg.getNotifications({ tag: 'masterplan-daily' }).then(l => l.forEach(n => n.close())).catch(() => {});
+            }
+        }
+        function runReminderCheck() {
+            if (LN) return;
+            if (window.MP && notifSupported() && Notification.permission === 'granted') MP.checkReminders(pageShow).catch(() => {});
+        }
+        async function registerPeriodicSync() {
+            try {
+                const reg = await navigator.serviceWorker.ready;
+                if (!('periodicSync' in reg)) return false;
+                const st = await navigator.permissions.query({ name: 'periodic-background-sync' });
+                if (st.state !== 'granted') return false;
+                await reg.periodicSync.register('masterplan-reminder', { minInterval: 15 * 60 * 1000 });
+                return true;
+            } catch (e) { return false; }
+        }
+
+        function saveReminderSettings() {
+            localStorage.setItem('masterplan_reminders', JSON.stringify(reminderSettings));
+            syncReminderState(); refreshReminderUI();
+        }
+        function saveReminderTimes() {
+            reminderSettings.times = [document.getElementById('reminderTime0').value, document.getElementById('reminderTime1').value];
+            saveReminderSettings();
+        }
+        async function setRemindersEnabled(on) {
+            const box = document.getElementById('reminderEnabled');
+            if (on) {
+                if (!notifSupported()) {
+                    box.checked = false;
+                    showToast(isIOS && !isStandalone ? 'iPhone: hãy "Thêm vào MH chính" rồi mở app từ icon' : 'Trình duyệt không hỗ trợ thông báo', 'error');
+                    return;
+                }
+                let perm = await getPerm(true);
+                if (perm !== 'granted') { box.checked = false; showToast('Bạn chưa cấp quyền thông báo cho trang này', 'error'); refreshReminderUI(); return; }
+                reminderSettings.enabled = true;
+                registerPeriodicSync();
+                showToast('Đã bật nhắc nhở!');
+            } else {
+                reminderSettings.enabled = false;
+            }
+            saveReminderSettings();
+        }
+        async function sendTestNotification() {
+            if (!notifSupported()) return showToast('Thiết bị/trình duyệt chưa hỗ trợ thông báo', 'error');
+            let perm = await getPerm(true);
+            if (perm !== 'granted') return showToast('Chưa được cấp quyền thông báo', 'error');
+            await pageShow('🎯 MasterPlan 5Y', 'Thông báo hoạt động tốt! Đừng quên check-in hôm nay.');
+        }
+        function refreshReminderUI() {
+            const perm = LN ? nativePerm : (notifSupported() ? Notification.permission : 'unsupported');
+            const on = reminderSettings.enabled && perm === 'granted';
+            document.getElementById('reminderEnabled').checked = on;
+            document.getElementById('bellDot').classList.toggle('hidden', !on);
+            document.getElementById('reminderTime0').value = reminderSettings.times[0] || '';
+            document.getElementById('reminderTime1').value = reminderSettings.times[1] || '';
+            document.getElementById('reminderStatus').textContent =
+                perm === 'denied' ? 'Đã bị chặn - hãy mở lại trong cài đặt trình duyệt/điện thoại'
+                : perm === 'unsupported' ? 'Chưa hỗ trợ trên trình duyệt này' : on ? 'Đang bật' : 'Đang tắt';
+            document.getElementById('reminderHelp').innerHTML = LN ? NATIVE_HELP :
+                (isIOS && !isStandalone ? '<b>iPhone/iPad:</b> bấm nút Chia sẻ → "Thêm vào MH chính", rồi mở app từ icon mới bật được thông báo (iOS 16.4+).<br><br>' : '') +
+                '<b>Lưu ý:</b> thông báo được kiểm tra khi app đang mở hoặc chạy nền. Android (Chrome, đã cài app) thường nhắc đúng giờ cả khi đóng app; iPhone chỉ đảm bảo khi mở app.';
+        }
+        function openReminderModal() { refreshReminderUI(); document.getElementById('reminderModal').classList.remove('hidden'); }
+        function closeReminderModal() { document.getElementById('reminderModal').classList.add('hidden'); }
+
+        // --- APPLICATION INITIALIZATION ---
+        initTheme();
+        updateOverallStats();
+        renderTodayTasks();
+        renderPlans();
+        refreshReminderUI();
+        if (LN) getPerm(false).then(() => { refreshReminderUI(); scheduleNative(); });
+        if (window.MP) {
+            Promise.all([MP.kvSet('plans', plans), MP.kvSet('settings', reminderSettings)]).then(runReminderCheck).catch(() => {});
+            setInterval(runReminderCheck, 30000);
+            document.addEventListener('visibilitychange', () => { if (!document.hidden) runReminderCheck(); });
+            if (reminderSettings.enabled) registerPeriodicSync();
+        }
+    </script>
+</body>
+</html>
